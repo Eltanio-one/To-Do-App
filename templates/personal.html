@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %} Personal {% endblock %}
+
+{% block main %}
+<div id="addSection">
+    <h2 class="title_one">Personal</h2>
+</div>
+<script src="static/functions.js"></script>
+
+<table class="noteTable" style="margin-left: auto; margin-right: auto;">
+    <tr>
+        <td>Task</td>
+        <td>Deadline</td>
+        <td></td>
+    </tr>
+    <tr id="topOfList">
+        <form action="/personal" method="post">
+        <td>
+            <input type="text" autocomplete="off" placeholder="Enter a task..." name="task" id="task">
+        </td>
+        <td>
+            <input type="date" autocomplete="off" placeholder="Enter a deadline..." name="deadline" id="deadline">
+        </td>
+        <td>
+            <button type="submit" class="square_button">Add</button>
+        </td>
+        </form>
+    </tr>
+</table>
+<p></p>
+<p></p>
+<table class="table table-borderless" style="text-align: center; margin-left: auto; margin-right: auto; width: 500px;">
+    <tbody>
+        {% for row in rows %}
+            <tr class="table_one">
+                <td>{{ row.task }}</td>
+                <td>{{ row.deadline }}</td>
+                <td>
+                    <form action="/removerow" method="post">
+                    <input type="hidden" value="personal" name="type">
+                    <input type="hidden" value="{{ row.task }}" id="task" type="text" name="task">
+                    <button type="submit" class="button_jinja">X</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<form action="/clearlist" method="post">
+    <input type="hidden" name="clear_list" value="personal">
+    <button type="submit" class="square_button">Clear List</button>
+</form>
+{% endblock %}

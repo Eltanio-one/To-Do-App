@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %} Today's Tasks {% endblock %}
+
+{% block main %}
+<div id="addSection">
+    <h2 id="title_one">Today's Tasks</h2>
+    <p></p>
+</div>
+<script src="static/functions.js"></script>
+<!-- <div>
+    <input type="text" autocomplete="off" autofocus placeholder="Enter a task..." name="task" id="task">
+    <button type="submit" onclick="addToList();">Add</button>
+</div>
+<ul id="today_list">
+    <li>ligma</li>
+</ul> -->
+<div>
+    <form action="/today" method="post">
+        <input type="text" autocomplete="off" autofocus placeholder="Enter a task..." name="task" id="task">
+        <button type="submit" class="square_button">Add</button>
+    </form>
+</div>
+<p></p>
+<table class="table table-borderless" style="width: 300px; margin-left: auto; margin-right: auto;">
+    {% for row in rows %}
+    <tr class="today_row">
+        <td class="table_one">{{ row.task }}</td>
+        <td>
+            <form action="/removerow" method="post">
+                <input type="hidden" value="today" name="type">
+                <input type="hidden" value="{{ row.task }}" id="task" type="text" name="task">
+                <button class="button_jinja" type="submit">X</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<p></p>
+<form action="/clearlist" method="post">
+    <input type="hidden" name="clear_list" value="today">
+    <button type="submit" class="square_button">Clear List</button>
+</form>
+{% endblock %}
