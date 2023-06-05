@@ -245,7 +245,8 @@ def projects():
         if not request.form.get("task"):
             flash("Please enter a task")
             return render_template("projects.html")
-        # check if deadline provided
+        # check if deadline provided, AND ENSURE TO REGEX SO THAT DATE IS CORRECT,
+        # ALSO CHECK HTML TO ENSURE THAT PROMPT IS GIVEN
         deadline = request.form.get("deadline")
         if not request.form.get("deadline"):
             flash("Please enter a deadline")
