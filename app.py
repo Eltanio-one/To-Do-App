@@ -9,7 +9,7 @@ import requests
 from config import SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
 
-# import anything from a helper.py file
+# import decorator function from helpers.py
 from helpers import login_required
 
 # configure application
