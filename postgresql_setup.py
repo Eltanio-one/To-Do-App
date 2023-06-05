@@ -15,17 +15,19 @@ def create_tables():
 
     # attempt query
     try:
+        # collect database params
         params = config()
-
+        # create connection
         conn = connect(**params)
-
+        # create cursor context manager & execute
         with conn:
             with conn.cursor() as cur:
                 cur.executemany(queries)
                 cur.commit()
-
+    # handle exceptions
     except (Exception, DatabaseError) as e:
         print(e)
+    # close connection
     finally:
         if conn:
             conn.close()
