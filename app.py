@@ -6,8 +6,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from cs50 import SQL
 from flask_mail import Mail, Message
 import requests
-from config import SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
+from config import config, SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
+from re import fullmatch
 
 # import decorator function from helpers.py
 from helpers import login_required
@@ -347,12 +348,21 @@ def email():
     # get variables
     email = request.form.get("email")
     text = request.form.get("message")
-    # check validity
+    # check presence
     if not request.form.get("email"):
         flash("Please insert your email address")
         return render_template("about.html")
     if not request.form.get("message"):
         flash("Please insert a message")
+        return render_template("about.html")
+    # check validity of email using regex
+    if not (
+        _ := fullmatch(
+            r"^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+            email,
+        )
+    ):
+        flash("Please insert a valid email address")
         return render_template("about.html")
 
     # manage the mail db to track emails n senders
@@ -364,7 +374,7 @@ def email():
     )
 
     # create and send mail
-    message = Message("To-Do Enquiry", sender=email, recipients=["CS50FPELT@gmail.com"])
+    message = Message("To-Do Enquiry", sender=email, recipients=[MAIL_USERNAME])
     message.body = text
     mail.send(message)
     flash("Message sent!")
