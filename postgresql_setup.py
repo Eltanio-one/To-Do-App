@@ -4,14 +4,48 @@ from config import config
 
 def create_tables():
     # write queries to create tables
-    queries = [
-        """CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, username TEXT NOT NULL, hash TEXT NOT NULL);""",
-        """CREATE TABLE projects (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, user_id INTEGER NOT NULL, task TEXT NOT NULL, deadline DATE, FOREIGN KEY (user_id));""",
-        """CREATE TABLE today (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, user_id INTEGER NOT NULL, task TEXT NOT NULL, priority TEXT, FOREIGN KEY (user_id));""",
-        """CREATE TABLE mail (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, user_id INTEGER NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL, FOREIGN KEY (user_id));""",
-        """CREATE TABLE personal (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, user_id INTEGER NOT NULL, task TEXT NOT NULL, deadline DATE, FOREIGN KEY (user_id));""",
-        """CREATE TABLE work (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, user_id INTEGER NOT NULL, task TEXT NOT NULL, deadline DATE, FOREIGN KEY (user_id));""",
-    ]
+    queries = (
+        """CREATE TABLE users (
+            id SERIAL PRIMARY KEY NOT NULL, 
+            username VARCHAR(255) NOT NULL, 
+            hash VARCHAR(255) NOT NULL
+        );""",
+        """CREATE TABLE projects (
+            id SERIAL PRIMARY KEY NOT NULL, 
+            user_id INTEGER NOT NULL, 
+            task VARCHAR(255) NOT NULL, 
+            deadline DATE, 
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );""",
+        """CREATE TABLE today (
+            id SERIAL PRIMARY KEY NOT NULL,
+            user_id INTEGER NOT NULL, 
+            task VARCHAR(255) NOT NULL, 
+            priority VARCHAR(255), 
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );""",
+        """CREATE TABLE mail (
+            id SERIAL PRIMARY KEY NOT NULL, 
+            user_id INTEGER NOT NULL, 
+            email VARCHAR(255) NOT NULL, 
+            message VARCHAR(255) NOT NULL, 
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );""",
+        """CREATE TABLE personal (
+            id SERIAL PRIMARY KEY NOT NULL, 
+            user_id INTEGER NOT NULL, 
+            task VARCHAR(255) NOT NULL, 
+            deadline DATE, 
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );""",
+        """CREATE TABLE work (
+            id SERIAL PRIMARY KEY NOT NULL, 
+            user_id INTEGER NOT NULL, 
+            task VARCHAR(255) NOT NULL, 
+            deadline DATE, 
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );""",
+    )
 
     # attempt query
     try:
@@ -22,8 +56,9 @@ def create_tables():
         # create cursor context manager & execute
         with conn:
             with conn.cursor() as cur:
-                cur.executemany(queries)
-                cur.commit()
+                for query in queries:
+                    cur.execute(query)
+                conn.commit()
     # handle exceptions
     except (Exception, DatabaseError) as e:
         print(e)
@@ -31,3 +66,7 @@ def create_tables():
     finally:
         if conn:
             conn.close()
+
+
+if __name__ == "__main__":
+    create_tables()

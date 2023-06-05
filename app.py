@@ -3,7 +3,6 @@ from flask import Flask, flash, redirect, render_template, request, session
 from datetime import datetime
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
-from cs50 import SQL
 from flask_mail import Mail, Message
 import requests
 from config import config, SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
@@ -12,6 +11,9 @@ from re import fullmatch
 
 # import decorator function from helpers.py
 from helpers import login_required
+
+# define the database parameters globally
+PARAMS = config()
 
 # configure application
 app = Flask(__name__)
@@ -40,9 +42,6 @@ Session(app)
 SITE_KEY = SITE_KEY
 SECRET_KEY = SECRET_KEY
 VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
-
-# initiate connection with the db
-db = SQL("sqlite:///todo.db")
 
 
 # ensure that nothing is cached so that after logging out, pages can't be accessed
@@ -124,9 +123,20 @@ def login():
         # check if username valid (exists)
         username = request.form.get("username")
         password = request.form.get("password")
+        try:
+            conn = connect(**PARAMS)
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM users WHERE username == ?;", (username,))
+                    rows = cur.fetchone()[0]
+        except (Exception, DatabaseError) as error:
+            print(error)
+        finally:
+            if conn:
+                conn.close()
 
         # query the db for the username and password based on username provided
-        rows = db.execute("SELECT * FROM users WHERE username == ?;", username)
+        # rows = db.execute("SELECT * FROM users WHERE username == ?;", username)
 
         # check if username is unique i.e. length ofa rows == 1
         # and if that password provided doesnt match the hash that is returned from the db
@@ -165,13 +175,30 @@ def register():
             flash("Please confirm your password")
             return render_template("register.html")
 
+        # query database for duplicate
+        try:
+            params = config()
+            conn = connect(**params)
+            with conn:
+                with conn.cursor() as cur:
+                    if cur.execute(
+                        "SELECT username FROM users WHERE EXISTS (SELECT 1 FROM users WHERE username == ?);",
+                        (username,),
+                    ):
+                        flash("Please choose a unique username")
+                        return render_template("register.html")
+        except (Exception, DatabaseError) as error:
+            print(error)
+        finally:
+            if conn:
+                conn.close()
         # check if username already exists
-        duplicate_check = db.execute(
-            "SELECT username FROM users WHERE username == ?;", username
-        )
-        if duplicate_check != []:
-            flash("Please choose a unique username")
-            return render_template("register.html")
+        # duplicate_check = db.execute(
+        #     "SELECT username FROM users WHERE username == ?;", username
+        # )
+        # if duplicate_check != []:
+        #     flash("Please choose a unique username")
+        #     return render_template("register.html")
 
         # check if password matches confirmation
         if password != confirmation:
@@ -182,7 +209,22 @@ def register():
         hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
 
         # insert into db
-        db.execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, hash)
+        try:
+            conn = connect(**params)
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO users (username, hash) VALUES (?, ?);",
+                        (username, hash),
+                    )
+                    conn.commit()
+        except (Exception, DatabaseError) as error:
+            print(error)
+        finally:
+            if conn:
+                conn.close()
+
+        # db.execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, hash)
 
         # send user to their homepage
         return redirect("/")
