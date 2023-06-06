@@ -63,11 +63,22 @@ def after_request(response):
 @login_required
 def index():
     # retrieve username from the users table post-registration
-    username = db.execute(
-        "SELECT username FROM users WHERE id == ?;", session["user_id"]
-    )
-    # extract username from list{dict}
-    username = username[0]["username"]
+    # username = db.execute(
+    #     "SELECT username FROM users WHERE id == ?;", session["user_id"]
+    # )
+    # # extract username from list{dict}
+    # username = username[0]["username"]
+    try:
+        conn = connect(**PARAMS)
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT username FROM users WHERE id == ?;", (session["user_id"],))
+                username = cur.fetchone()[0]
+    except (Exception, DatabaseError) as error:
+        print(error)
+    finally:
+        if conn:
+            conn.close()
 
     # determine time for index greeting
     now = datetime.now()
@@ -177,8 +188,7 @@ def register():
 
         # query database for duplicate
         try:
-            params = config()
-            conn = connect(**params)
+            conn = connect(**PARAMS)
             with conn:
                 with conn.cursor() as cur:
                     if cur.execute(
@@ -210,7 +220,7 @@ def register():
 
         # insert into db
         try:
-            conn = connect(**params)
+            conn = connect(**PARAMS)
             with conn:
                 with conn.cursor() as cur:
                     cur.execute(

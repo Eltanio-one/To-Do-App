@@ -2,7 +2,7 @@ from psycopg2 import connect, DatabaseError
 from config import config
 
 
-def create_tables():
+def create_tables() -> None:
     # write queries to create tables
     queries = (
         """CREATE TABLE users (

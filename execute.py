@@ -1,0 +1,1 @@
+def curexecute(query: str, arguments=(): tuple) -> None
