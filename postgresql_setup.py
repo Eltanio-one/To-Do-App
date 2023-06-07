@@ -6,15 +6,15 @@ def create_tables() -> None:
     # write queries to create tables
     queries = (
         """CREATE TABLE users (
-            id SERIAL PRIMARY KEY NOT NULL, 
-            username VARCHAR(255) NOT NULL, 
+            id SERIAL PRIMARY KEY NOT NULL,
+            username VARCHAR(255) NOT NULL,
             hash VARCHAR(255) NOT NULL
         );""",
         """CREATE TABLE projects (
             id SERIAL PRIMARY KEY NOT NULL, 
             user_id INTEGER NOT NULL, 
             task VARCHAR(255) NOT NULL, 
-            deadline DATE, 
+            deadline VARCHAR(255) NOT NULL, 
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE today (
@@ -35,14 +35,14 @@ def create_tables() -> None:
             id SERIAL PRIMARY KEY NOT NULL, 
             user_id INTEGER NOT NULL, 
             task VARCHAR(255) NOT NULL, 
-            deadline DATE, 
+            deadline VARCHAR(255) NOT NULL, 
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE work (
-            id SERIAL PRIMARY KEY NOT NULL, 
-            user_id INTEGER NOT NULL, 
-            task VARCHAR(255) NOT NULL, 
-            deadline DATE, 
+            id SERIAL PRIMARY KEY NOT NULL,
+            user_id INTEGER NOT NULL,
+            task VARCHAR(255) NOT NULL,
+            deadline VARCHAR(255) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
     )

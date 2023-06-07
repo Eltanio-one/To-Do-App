@@ -22,6 +22,22 @@ def login_required(f):
     return wrap
 
 
+def fetch_row(query: str, arguments=None) -> list:
+    try:
+        params = config()
+        conn = connect(**params)
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(query, arguments)
+                rows = cur.fetchone()
+                return rows
+    except (Exception, DatabaseError) as error:
+        print(error)
+    finally:
+        if conn:
+            conn.close()
+
+
 def fetch_rows(query: str, arguments=None) -> list:
     try:
         params = config()
@@ -29,7 +45,7 @@ def fetch_rows(query: str, arguments=None) -> list:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(query, arguments)
-                rows = cur.fetchone()[0]
+                rows = cur.fetchall()
                 return rows
     except (Exception, DatabaseError) as error:
         print(error)
@@ -51,3 +67,10 @@ def modify_rows(query: str, arguments=None) -> None:
     finally:
         if conn:
             conn.close()
+
+
+def reformat_rows(rows: tuple) -> list:
+    return_rows = []
+    for row in rows:
+        return_rows.append("".join(row))
+    return return_rows

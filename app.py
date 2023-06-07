@@ -5,15 +5,14 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_mail import Mail, Message
 import requests
-from cs50 import SQL
 from config import config, SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
 from re import fullmatch
 
 # import functions from helpers.py
-from helpers import login_required, fetch_rows, modify_rows
+from helpers import login_required, fetch_row, fetch_rows, modify_rows, reformat_rows
 
-db = SQL("sqlite:///todo.db")
+# db = SQL("sqlite:///todo.db")
 
 # define the database parameters globally
 PARAMS = config()
@@ -66,28 +65,9 @@ def after_request(response):
 @login_required
 def index():
     # retrieve username from the users table post-registration
-    # username = db.execute(
-    #     "SELECT username FROM users WHERE id == ?;", session["user_id"]
-    # )
-    # # extract username from list{dict}
-    # username = username[0]["username"]
-
-    username = fetch_rows(
-        "SELECT username FROM users WHERE id == ?;", (session["user_id"],)
+    username = "".join(
+        fetch_row("""SELECT username FROM users WHERE id = %s""", (session["user_id"],))
     )
-    # try:
-    #     conn = connect(**PARAMS)
-    #     with conn:
-    #         with conn.cursor() as cur:
-    #             cur.execute(
-    #                 "SELECT username FROM users WHERE id == ?;", (session["user_id"],)
-    #             )
-    #             username = cur.fetchone()[0]
-    # except (Exception, DatabaseError) as error:
-    #     print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
     # determine time for index greeting
     now = datetime.now()
@@ -143,30 +123,18 @@ def login():
         # check if username valid (exists)
         username = request.form.get("username")
         password = request.form.get("password")
-        # try:
-        #     conn = connect(**PARAMS)
-        #     with conn:
-        #         with conn.cursor() as cur:
-        #             cur.execute("SELECT * FROM users WHERE username == ?;", (username,))
-        #             rows = cur.fetchone()[0]
-        # except (Exception, DatabaseError) as error:
-        #     print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
-        rows = fetch_rows("SELECT * FROM users WHERE username == ?;", (username,))
 
-        # query the db for the username and password based on username provided
-        # rows = db.execute("SELECT * FROM users WHERE username == ?;", username)
+        # fetch user parameters
+        row = fetch_row("""SELECT * FROM users WHERE username = %s""", (username,))
 
         # check if username is unique i.e. length ofa rows == 1
         # and if that password provided doesnt match the hash that is returned from the db
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], password):
+        if len(row) != 3 or not check_password_hash(row[2], password):
             flash("Invalid username and/or password")
             return render_template("login.html", site_key=SITE_KEY)
 
         # validity check over, now assign id to session["user_id"]
-        session["user_id"] = rows[0]["id"]
+        session["user_id"] = row[0]
 
         # redirect the user to their homepage
         return redirect("/")
@@ -201,10 +169,12 @@ def register():
             conn = connect(**PARAMS)
             with conn:
                 with conn.cursor() as cur:
-                    if cur.execute(
-                        "SELECT username FROM users WHERE EXISTS (SELECT 1 FROM users WHERE username == ?);",
+                    cur.execute(
+                        """SELECT username FROM users WHERE username = %s""",
                         (username,),
-                    ):
+                    )
+                    dup = cur.fetchone()[0]
+                    if dup == username:
                         flash("Please choose a unique username")
                         return render_template("register.html")
         except (Exception, DatabaseError) as error:
@@ -212,13 +182,6 @@ def register():
         finally:
             if conn:
                 conn.close()
-        # check if username already exists
-        # duplicate_check = db.execute(
-        #     "SELECT username FROM users WHERE username == ?;", username
-        # )
-        # if duplicate_check != []:
-        #     flash("Please choose a unique username")
-        #     return render_template("register.html")
 
         # check if password matches confirmation
         if password != confirmation:
@@ -228,28 +191,10 @@ def register():
         # hash the password
         hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
 
-        # insert into db
-        # try:
-        #     conn = connect(**PARAMS)
-        #     with conn:
-        #         with conn.cursor() as cur:
-        #             cur.execute(
-        #                 "INSERT INTO users (username, hash) VALUES (?, ?);",
-        #                 (username, hash),
-        #             )
-        #             conn.commit()
-        # except (Exception, DatabaseError) as error:
-        #     print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
-
+        # insert user into users table
         modify_rows(
-            "INSERT INTO users (username, hash) VALUES (?, ?);", (username, hash)
+            """INSERT INTO users (username, hash) VALUES (%s, %s)""", (username, hash)
         )
-
-        # db.execute("INSERT INTO users (username, hash) VALUES (?, ?);", username, hash)
-
         # send user to their homepage
         return redirect("/")
 
@@ -265,24 +210,11 @@ def register():
 def today():
     # if accessing the page via get
     if request.method == "GET":
-        # select all rows from db
-        # try:
-        #     conn = connect(**PARAMS)
-        #     with conn:
-        #         with conn.cursor() as cur:
-        #             cur.execute(
-        #                 "SELECT * FROM today WHERE user_id == ?;", (session["user_id"],)
-        #             )
-        #             rows = cur.fetchone()[0]
-        # except (Exception, DatabaseError) as error:
-        #     print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
         rows = fetch_rows(
-            "SELECT * FROM today WHERE user_id == ?;", (session["user_id"],)
+            """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
         )
-        # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
+        # reformat rows
+        rows = reformat_rows(rows)
 
         # render today template with current rows
         return render_template("today.html", rows=rows)
@@ -294,32 +226,18 @@ def today():
         if not request.form.get("task"):
             flash("Please enter a task")
             return render_template("today.html")
+        # add task to db
+        modify_rows(
+            """INSERT INTO today (user_id, task) VALUES (%s, %s)""",
+            (session["user_id"], task),
+        )
+        # get updated rows to pass to frontend
+        rows = fetch_rows(
+            """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+        )
 
-        try:
-            conn = connect(**PARAMS)
-            with conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "INSERT INTO today (user_id, task) VALUES (?, ?);",
-                        (session["user_id"], task),
-                    )
-                    conn.commit()
-                    cur.execute(
-                        "SELECT * FROM today WHERE user_id == ?;", (session["user_id"])
-                    )
-                    rows = cur.fetchone()[0]
-        except (Exception, DatabaseError) as error:
-            print(error)
-        finally:
-            if conn:
-                conn.close()
-        # insert new task into the today db
-        # db.execute(
-        #     "INSERT INTO today (user_id, task) VALUES (?, ?);", session["user_id"], task
-        # )
-
-        # refresh rows for the html
-        # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
+        # reformat rows
+        rows = reformat_rows(rows)
 
         # render today template
         return render_template("today.html", rows=rows)
@@ -331,28 +249,20 @@ def today():
 def projects():
     # if accessing via get
     if request.method == "GET":
-        # select all rows from the projects db
-        # try:
-        #     conn = connect(**PARAMS)
-        #     with conn:
-        #         with conn.cursor() as cur:
-        #             cur.execute(
-        #                 "SELECT * FROM projects WHERE user_id == ?;",
-        #                 (session["user_id"],),
-        #             )
-        #             rows = cur.fetchone()[0]
-        # except (Exception, DatabaseError) as error:
-        #     print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
-
-        rows = fetch_rows(
-            "SELECT * FROM projects WHERE user_id == ?;", (session["user_id"],)
+        tasks = fetch_rows(
+            """SELECT task FROM projects WHERE user_id = %s""",
+            (session["user_id"],),
         )
-        #     "SELECT * FROM projects WHERE user_id == ?;", session["user_id"]
-        # )
-        # render template with current rows
+        tasks = reformat_rows(tasks)
+        deadlines = fetch_rows(
+            """SELECT deadline FROM projects WHERE user_id = %s""",
+            (session["user_id"],),
+        )
+        deadlines = reformat_rows(deadlines)
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
+
         return render_template("projects.html", rows=rows)
 
     # if accessing via post
@@ -368,44 +278,52 @@ def projects():
         if not request.form.get("deadline"):
             flash("Please enter a deadline")
             return render_template("projects.html")
+        if not (
+            _ := fullmatch(
+                r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$",
+                deadline,
+            )
+        ):
+            tasks = fetch_rows(
+                """SELECT task FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+            tasks = reformat_rows(tasks)
+            deadlines = fetch_rows(
+                """SELECT deadline FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+            deadlines = reformat_rows(deadlines)
+            rows = []
+            for i, x in enumerate(tasks):
+                rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
-        try:
-            conn = connect(**PARAMS)
-            with conn:
-                with conn.cursor as cur:
-                    cur.execute(
-                        "INSERT INTO projects (user_id, task, deadline) VALUES (?, ?, ?);",
-                        (
-                            session["user_id"],
-                            task,
-                            deadline,
-                        ),
-                    )
-                    conn.commit()
-                    cur.execute(
-                        "SELECT * FROM projects WHERE user_id == ?;",
-                        (session["user_id"]),
-                    )
-                    rows = cur.fetchone()[0]
-        except (Exception, DatabaseError) as error:
-            print(error)
-        finally:
-            if conn:
-                conn.close()
-        # insert into db
-        # db.execute(
-        #     "INSERT INTO projects (user_id, task, deadline) VALUES (?, ?, ?);",
-        #     session["user_id"],
-        #     task,
-        #     deadline,
-        # )
+            flash("Please insert a valid date ")
+            return render_template("projects.html", rows=rows)
 
-        # refresh the rows
-        # rows = db.execute(
-        #     "SELECT * FROM projects WHERE user_id == ?;", session["user_id"]
-        # )
+        modify_rows(
+            """INSERT INTO projects (user_id, task, deadline) VALUES (%s, %s, %s)""",
+            (
+                session["user_id"],
+                task,
+                deadline,
+            ),
+        )
 
-        # render the projects.html with current rows
+        tasks = fetch_rows(
+            """SELECT task FROM projects WHERE user_id = %s""",
+            (session["user_id"],),
+        )
+        tasks = reformat_rows(tasks)
+        deadlines = fetch_rows(
+            """SELECT deadline FROM projects WHERE user_id = %s""",
+            (session["user_id"],),
+        )
+        deadlines = reformat_rows(deadlines)
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
+
         return render_template("projects.html", rows=rows)
 
 
@@ -418,7 +336,7 @@ def personal():
         #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
         # )
         rows = fetch_rows(
-            "SELECT * FROM personal WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
         )
 
         return render_template("personal.html", rows=rows)
@@ -441,12 +359,12 @@ def personal():
         #     deadline,
         # )
         modify_rows(
-            "INSERT INTO personal (user_id, task, deadline) VALUES (?, ?, ?);",
+            """INSERT INTO personal (user_id, task, deadline) VALUES (%s, %s, %s)""",
             (session["user_id"], task, deadline),
         )
 
         rows = fetch_rows(
-            "SELECT * FROM personal WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
         )
 
         # rows = db.execute(
@@ -462,7 +380,7 @@ def personal():
 def work():
     if request.method == "GET":
         rows = fetch_rows(
-            "SELECT * FROM work WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
         )
         # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
         return render_template("work.html", rows=rows)
@@ -485,13 +403,13 @@ def work():
         #     deadline,
         # )
         modify_rows(
-            "INSERT INTO work (user_id, task, deadline) VALUES (?, ?, ?);",
+            """INSERT INTO work (user_id, task, deadline) VALUES (%s, %s, %s)""",
             (session["user_id"], task, deadline),
         )
 
         # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
         rows = fetch_rows(
-            "SELECT * FROM work WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
         )
 
         return render_template("work.html", rows=rows)
@@ -537,7 +455,7 @@ def email():
     # )
 
     modify_rows(
-        "INSERT INTO mail (user_id, email, message) VALUES (?, ?, ?);",
+        """INSERT INTO mail (user_id, email, message) VALUES (%s, %s, %s)""",
         (session["user_id"], email, text),
     )
     # create and send mail
@@ -566,7 +484,7 @@ def removerow():
         # )
 
         modify_rows(
-            "DELETE FROM projects WHERE user_id == ? AND task == ?;",
+            """DELETE FROM projects WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
@@ -576,7 +494,7 @@ def removerow():
         # )
 
         rows = fetch_rows(
-            "SELECT * FROM projects WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM projects WHERE user_id = %s""", (session["user_id"],)
         )
 
         # re-render the page
@@ -592,14 +510,15 @@ def removerow():
         #     task,
         # )
         modify_rows(
-            "DELETE FROM today WHERE user_id == ? AND task == ?;",
+            "DELETE FROM today WHERE user_id = %s AND task = %s",
             (session["user_id"], task),
         )
 
         # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
         rows = fetch_rows(
-            "SELECT * FROM today WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM today WHERE user_id = %s""", (session["user_id"],)
         )
+        print(rows)
 
         return render_template("today.html", rows=rows)
 
@@ -613,7 +532,7 @@ def removerow():
         #     task,
         # )
         modify_rows(
-            "DELETE FROM personal WHERE user_id == ? AND task == ?;",
+            """DELETE FROM personal WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
@@ -621,7 +540,7 @@ def removerow():
         #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
         # )
         rows = fetch_rows(
-            "SELECT * FROM personal WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
         )
 
         return render_template("personal.html", rows=rows)
@@ -636,13 +555,13 @@ def removerow():
         #     task,
         # )
         modify_rows(
-            "DELETE FROM work WHERE user_id == ? AND task == ?;",
+            """DELETE FROM work WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
         # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
         rows = fetch_rows(
-            "SELECT * FROM work WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
         )
         return render_template("work.html", rows=rows)
 
@@ -655,14 +574,16 @@ def clearlist():
     if request.form["clear_list"] == "projects":
         # delete all rows from relevant db
         # db.execute("DELETE FROM projects WHERE user_id == ?;", session["user_id"])
-        modify_rows("DELETE FROM projects WHERE user_id == ?;", (session["user_id"],))
+        modify_rows(
+            """DELETE FROM projects WHERE user_id = %s""", (session["user_id"],)
+        )
 
         # update the rows variable
         # rows = db.execute(
         #     "SELECT * FROM projects WHERE user_id == ?;", session["user_id"]
         # )
         rows = fetch_rows(
-            "SELECT * FROM projects WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM projects WHERE user_id = %s""", (session["user_id"],)
         )
 
         # re-render the current page
@@ -671,23 +592,25 @@ def clearlist():
     # if submitted from the today page (same as above)
     elif request.form["clear_list"] == "today":
         # db.execute("DELETE FROM today WHERE user_id == ?;", session["user_id"])
-        modify_rows("DELETE FROM today WHERE user_id == ?;", (session["user_id"],))
+        modify_rows("""DELETE FROM today WHERE user_id = %s""", (session["user_id"],))
         # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
         rows = fetch_rows(
-            "SELECT * FROM today WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM today WHERE user_id = %s""", (session["user_id"],)
         )
         return render_template("today.html", rows=rows)
 
     # if submitted from the personal page (same as above)
     elif request.form["clear_list"] == "personal":
         # db.execute("DELETE FROM personal WHERE user_id == ?;", session["user_id"])
-        modify_rows("DELETE FROM personal WHERE user_id == ?;", (session["user_id"],))
+        modify_rows(
+            """DELETE FROM personal WHERE user_id = %s""", (session["user_id"],)
+        )
 
         # rows = db.execute(
         #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
         # )
         rows = fetch_rows(
-            "SELECT * FROM personal WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
         )
 
         return render_template("personal.html", rows=rows)
@@ -695,11 +618,11 @@ def clearlist():
     # if submitted from the work page (same as above)
     elif request.form["clear_list"] == "work":
         # db.execute("DELETE FROM work WHERE user_id == ?;", session["user_id"])
-        modify_rows("DELETE FROM work WHERE user_id == ?;", (session["user_id"],))
+        modify_rows("""DELETE FROM work WHERE user_id = %s""", (session["user_id"],))
 
         # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
         rows = fetch_rows(
-            "SELECT * FROM work WHERE user_id == ?;", (session["user_id"],)
+            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
         )
         return render_template("work.html", rows=rows)
 

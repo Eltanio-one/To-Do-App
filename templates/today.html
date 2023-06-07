@@ -25,11 +25,11 @@
 <table class="table table-borderless" style="width: 300px; margin-left: auto; margin-right: auto;">
     {% for row in rows %}
     <tr class="today_row">
-        <td class="table_one">{{ row.task }}</td>
+        <td class="table_one">{{ row }}</td>
         <td>
             <form action="/removerow" method="post">
                 <input type="hidden" value="today" name="type">
-                <input type="hidden" value="{{ row.task }}" id="task" type="text" name="task">
+                <input type="hidden" value="{{ row }}" id="task" type="text" name="task">
                 <button class="button_jinja" type="submit">X</button>
             </form>
         </td>
