@@ -16,15 +16,15 @@
     </tr>
     <tr id="topOfList">
         <form action="/work" method="post">
-        <td>
-            <input type="text" autocomplete="off" placeholder="Enter a task..." name="task" id="task">
-        </td>
-        <td>
-            <input type="date" autocomplete="off" placeholder="Enter a deadline..." name="deadline" id="deadline">
-        </td>
-        <td>
-            <button type="submit" class="square_button">Add</button>
-        </td>
+            <td>
+                <input type="text" autocomplete="off" placeholder="Enter a task..." name="task" id="task">
+            </td>
+            <td>
+                <input type="text" autocomplete="off" placeholder="Enter a deadline..." name="deadline" id="deadline">
+            </td>
+            <td>
+                <button type="submit" class="square_button">Add</button>
+            </td>
         </form>
     </tr>
 </table>
@@ -33,17 +33,17 @@
 <table class="table table-borderless" style="text-align: center; margin-left: auto; margin-right: auto; width: 500px;">
     <tbody>
         {% for row in rows %}
-            <tr class="table_one">
-                <td>{{ row.task }}</td>
-                <td>{{ row.deadline }}</td>
-                <td>
-                    <form action="/removerow" method="post">
+        <tr class="table_one">
+            <td>{{ row.task }}</td>
+            <td>{{ row.deadline }}</td>
+            <td>
+                <form action="/removerow" method="post">
                     <input type="hidden" value="work" name="type">
                     <input type="hidden" value="{{ row.task }}" id="task" type="text" name="task">
                     <button type="submit" class="button_jinja">X</button>
-                    </form>
-                </td>
-            </tr>
+                </form>
+            </td>
+        </tr>
         {% endfor %}
     </tbody>
 </table>

@@ -11,31 +11,31 @@ def create_tables() -> None:
             hash VARCHAR(255) NOT NULL
         );""",
         """CREATE TABLE projects (
-            id SERIAL PRIMARY KEY NOT NULL, 
-            user_id INTEGER NOT NULL, 
-            task VARCHAR(255) NOT NULL, 
-            deadline VARCHAR(255) NOT NULL, 
+            id SERIAL PRIMARY KEY NOT NULL,
+            user_id INTEGER NOT NULL,
+            task VARCHAR(255) NOT NULL,
+            deadline VARCHAR(255) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE today (
             id SERIAL PRIMARY KEY NOT NULL,
-            user_id INTEGER NOT NULL, 
-            task VARCHAR(255) NOT NULL, 
-            priority VARCHAR(255), 
+            user_id INTEGER NOT NULL,
+            task VARCHAR(255) NOT NULL,
+            priority VARCHAR(255),
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE mail (
-            id SERIAL PRIMARY KEY NOT NULL, 
-            user_id INTEGER NOT NULL, 
-            email VARCHAR(255) NOT NULL, 
-            message VARCHAR(255) NOT NULL, 
+            id SERIAL PRIMARY KEY NOT NULL,
+            user_id INTEGER NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            message VARCHAR(255) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE personal (
-            id SERIAL PRIMARY KEY NOT NULL, 
-            user_id INTEGER NOT NULL, 
-            task VARCHAR(255) NOT NULL, 
-            deadline VARCHAR(255) NOT NULL, 
+            id SERIAL PRIMARY KEY NOT NULL,
+            user_id INTEGER NOT NULL,
+            task VARCHAR(255) NOT NULL,
+            deadline VARCHAR(255) NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
         );""",
         """CREATE TABLE work (

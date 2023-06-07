@@ -14,17 +14,19 @@
 </script>
 <form id="login_form" action="/login" method="post">
     <div class="mb-3">
-        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" placeholder="Username" type="text">
+        <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username"
+            placeholder="Username" type="text">
     </div>
     <div class="mb-3">
         <input class="form-control mx-auto w-auto" id="password" name="password" placeholder="Password" type="password">
     </div>
     <p></p>
-    <button class="g-recaptcha btn btn-primary" data-sitekey="{{ site_key }}" type="submit" data-callback="onSubmit" data-action="submit">Log In</button>
+    <button class="g-recaptcha btn btn-primary" data-sitekey="{{ site_key }}" type="submit" data-callback="onSubmit"
+        data-action="submit">Log In</button>
 </form>
 
 <p></p>
 <form action="/register" method="get">
-<button class="btn btn-secondary" type="submit">Register</button>
+    <button class="btn btn-secondary" type="submit">Register</button>
 </form>
 {% endblock %}

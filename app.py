@@ -10,7 +10,7 @@ from psycopg2 import connect, DatabaseError
 from re import fullmatch
 
 # import functions from helpers.py
-from helpers import login_required, fetch_row, fetch_rows, modify_rows, reformat_rows
+from helpers import *
 
 # db = SQL("sqlite:///todo.db")
 
@@ -210,11 +210,11 @@ def register():
 def today():
     # if accessing the page via get
     if request.method == "GET":
-        rows = fetch_rows(
-            """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+        rows = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+            )
         )
-        # reformat rows
-        rows = reformat_rows(rows)
 
         # render today template with current rows
         return render_template("today.html", rows=rows)
@@ -232,12 +232,11 @@ def today():
             (session["user_id"], task),
         )
         # get updated rows to pass to frontend
-        rows = fetch_rows(
-            """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+        rows = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+            )
         )
-
-        # reformat rows
-        rows = reformat_rows(rows)
 
         # render today template
         return render_template("today.html", rows=rows)
@@ -249,16 +248,18 @@ def today():
 def projects():
     # if accessing via get
     if request.method == "GET":
-        tasks = fetch_rows(
-            """SELECT task FROM projects WHERE user_id = %s""",
-            (session["user_id"],),
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-        tasks = reformat_rows(tasks)
-        deadlines = fetch_rows(
-            """SELECT deadline FROM projects WHERE user_id = %s""",
-            (session["user_id"],),
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-        deadlines = reformat_rows(deadlines)
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -272,8 +273,8 @@ def projects():
         if not request.form.get("task"):
             flash("Please enter a task")
             return render_template("projects.html")
-        # check if deadline provided, AND ENSURE TO REGEX SO THAT DATE IS CORRECT,
-        # ALSO CHECK HTML TO ENSURE THAT PROMPT IS GIVEN
+
+        # check if deadline provided is valid
         deadline = request.form.get("deadline")
         if not request.form.get("deadline"):
             flash("Please enter a deadline")
@@ -284,16 +285,18 @@ def projects():
                 deadline,
             )
         ):
-            tasks = fetch_rows(
-                """SELECT task FROM projects WHERE user_id = %s""",
-                (session["user_id"],),
+            tasks = reformat_rows(
+                fetch_rows(
+                    """SELECT task FROM projects WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
             )
-            tasks = reformat_rows(tasks)
-            deadlines = fetch_rows(
-                """SELECT deadline FROM projects WHERE user_id = %s""",
-                (session["user_id"],),
+            deadlines = reformat_rows(
+                fetch_rows(
+                    """SELECT deadline FROM projects WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
             )
-            deadlines = reformat_rows(deadlines)
             rows = []
             for i, x in enumerate(tasks):
                 rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -310,16 +313,18 @@ def projects():
             ),
         )
 
-        tasks = fetch_rows(
-            """SELECT task FROM projects WHERE user_id = %s""",
-            (session["user_id"],),
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-        tasks = reformat_rows(tasks)
-        deadlines = fetch_rows(
-            """SELECT deadline FROM projects WHERE user_id = %s""",
-            (session["user_id"],),
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-        deadlines = reformat_rows(deadlines)
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -331,45 +336,88 @@ def projects():
 @app.route("/personal", methods=["GET", "POST"])
 @login_required
 def personal():
+    # if accessing via get
     if request.method == "GET":
-        # rows = db.execute(
-        #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
-        # )
-        rows = fetch_rows(
-            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        # tasks = reformat_rows(tasks)
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         return render_template("personal.html", rows=rows)
 
+    # if accessing via post
     elif request.method == "POST":
+        # check if task provided
         task = request.form.get("task")
         if not request.form.get("task"):
             flash("Please enter a task")
             return render_template("personal.html")
+        # check if deadline provided is valid
         deadline = request.form.get("deadline")
         if not request.form.get("deadline"):
             flash("Please enter a deadline")
             return render_template("personal.html")
+        if not (
+            _ := fullmatch(
+                r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$",
+                deadline,
+            )
+        ):
+            tasks = reformat_rows(
+                fetch_rows(
+                    """SELECT task FROM personal WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
+            )
+            deadlines = reformat_rows(
+                fetch_rows(
+                    """SELECT deadline FROM personal WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
+            )
+            rows = []
+            for i, x in enumerate(tasks):
+                rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
-        # insert into db
-        # db.execute(
-        #     "INSERT INTO personal (user_id, task, deadline) VALUES (?, ?, ?);",
-        #     session["user_id"],
-        #     task,
-        #     deadline,
-        # )
+            flash("Please insert a valid date ")
+            return render_template("personal.html", rows=rows)
+
         modify_rows(
             """INSERT INTO personal (user_id, task, deadline) VALUES (%s, %s, %s)""",
-            (session["user_id"], task, deadline),
+            (
+                session["user_id"],
+                task,
+                deadline,
+            ),
         )
 
-        rows = fetch_rows(
-            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-
-        # rows = db.execute(
-        #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
-        # )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         return render_template("personal.html", rows=rows)
 
@@ -378,48 +426,94 @@ def personal():
 @app.route("/work", methods=["GET", "POST"])
 @login_required
 def work():
+    # if accessing via get
     if request.method == "GET":
-        rows = fetch_rows(
-            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-        # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
+
         return render_template("work.html", rows=rows)
 
+    # if accessing via post
     elif request.method == "POST":
+        # check if task provided
         task = request.form.get("task")
         if not request.form.get("task"):
             flash("Please enter a task")
             return render_template("work.html")
+
+        # check if deadline provided is valid
         deadline = request.form.get("deadline")
         if not request.form.get("deadline"):
             flash("Please enter a deadline")
             return render_template("work.html")
+        if not (
+            _ := fullmatch(
+                r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$",
+                deadline,
+            )
+        ):
+            tasks = reformat_rows(
+                fetch_rows(
+                    """SELECT task FROM work WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
+            )
+            deadlines = reformat_rows(
+                fetch_rows(
+                    """SELECT deadline FROM work WHERE user_id = %s""",
+                    (session["user_id"],),
+                )
+            )
+            rows = []
+            for i, x in enumerate(tasks):
+                rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
-        # insert into db
-        # db.execute(
-        #     "INSERT INTO work (user_id, task, deadline) VALUES (?, ?, ?);",
-        #     session["user_id"],
-        #     task,
-        #     deadline,
-        # )
+            flash("Please insert a valid date ")
+            return render_template("work.html", rows=rows)
+
         modify_rows(
             """INSERT INTO work (user_id, task, deadline) VALUES (%s, %s, %s)""",
-            (session["user_id"], task, deadline),
+            (
+                session["user_id"],
+                task,
+                deadline,
+            ),
         )
 
-        # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
-        rows = fetch_rows(
-            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         return render_template("work.html", rows=rows)
 
 
-# define the app.route for the about page
 @app.route("/about", methods=["GET"])
-@login_required
 def about():
-    # only need to view, so no post needed
     return render_template("about.html")
 
 
@@ -446,18 +540,11 @@ def email():
         flash("Please insert a valid email address")
         return render_template("about.html")
 
-    # manage the mail db to track emails n senders
-    # db.execute(
-    #     "INSERT INTO mail (user_id, email, message) VALUES (?, ?, ?);",
-    #     session["user_id"],
-    #     email,
-    #     text,
-    # )
-
     modify_rows(
         """INSERT INTO mail (user_id, email, message) VALUES (%s, %s, %s)""",
         (session["user_id"], email, text),
     )
+
     # create and send mail
     message = Message("To-Do Enquiry", sender=email, recipients=[MAIL_USERNAME])
     message.body = text
@@ -476,26 +563,26 @@ def removerow():
         # get the task from the form
         task = request.form.get("task")
 
-        # delete from relevant db where task
-        # db.execute(
-        #     "DELETE FROM projects WHERE user_id == ? AND task == ?;",
-        #     session["user_id"],
-        #     task,
-        # )
-
         modify_rows(
             """DELETE FROM projects WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
-        # update the rows for the current page
-        # rows = db.execute(
-        #     "SELECT * FROM projects WHERE user_id == ?;", session["user_id"]
-        # )
-
-        rows = fetch_rows(
-            """SELECT * FROM projects WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         # re-render the page
         return render_template("projects.html", rows=rows)
@@ -504,21 +591,16 @@ def removerow():
     elif request.form["type"] == "today":
         task = request.form.get("task")
 
-        # db.execute(
-        #     "DELETE FROM today WHERE user_id == ? AND task == ?;",
-        #     session["user_id"],
-        #     task,
-        # )
         modify_rows(
             "DELETE FROM today WHERE user_id = %s AND task = %s",
             (session["user_id"], task),
         )
 
-        # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
-        rows = fetch_rows(
-            """SELECT * FROM today WHERE user_id = %s""", (session["user_id"],)
+        rows = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+            )
         )
-        print(rows)
 
         return render_template("today.html", rows=rows)
 
@@ -526,22 +608,26 @@ def removerow():
     elif request.form["type"] == "personal":
         task = request.form.get("task")
 
-        # db.execute(
-        #     "DELETE FROM personal WHERE user_id == ? AND task == ?;",
-        #     session["user_id"],
-        #     task,
-        # )
         modify_rows(
             """DELETE FROM personal WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
-        # rows = db.execute(
-        #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
-        # )
-        rows = fetch_rows(
-            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         return render_template("personal.html", rows=rows)
 
@@ -549,20 +635,26 @@ def removerow():
     elif request.form["type"] == "work":
         task = request.form.get("task")
 
-        # db.execute(
-        #     "DELETE FROM work WHERE user_id == ? AND task == ?;",
-        #     session["user_id"],
-        #     task,
-        # )
         modify_rows(
             """DELETE FROM work WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
 
-        # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
-        rows = fetch_rows(
-            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
         return render_template("work.html", rows=rows)
 
 
@@ -573,57 +665,81 @@ def clearlist():
     # if submitted from the projects page
     if request.form["clear_list"] == "projects":
         # delete all rows from relevant db
-        # db.execute("DELETE FROM projects WHERE user_id == ?;", session["user_id"])
         modify_rows(
             """DELETE FROM projects WHERE user_id = %s""", (session["user_id"],)
         )
 
-        # update the rows variable
-        # rows = db.execute(
-        #     "SELECT * FROM projects WHERE user_id == ?;", session["user_id"]
-        # )
-        rows = fetch_rows(
-            """SELECT * FROM projects WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM projects WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
         # re-render the current page
         return render_template("projects.html", rows=rows)
 
     # if submitted from the today page (same as above)
     elif request.form["clear_list"] == "today":
-        # db.execute("DELETE FROM today WHERE user_id == ?;", session["user_id"])
         modify_rows("""DELETE FROM today WHERE user_id = %s""", (session["user_id"],))
-        # rows = db.execute("SELECT * FROM today WHERE user_id == ?;", session["user_id"])
-        rows = fetch_rows(
-            """SELECT * FROM today WHERE user_id = %s""", (session["user_id"],)
+        rows = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM today WHERE user_id = %s""", (session["user_id"],)
+            )
         )
         return render_template("today.html", rows=rows)
 
     # if submitted from the personal page (same as above)
     elif request.form["clear_list"] == "personal":
-        # db.execute("DELETE FROM personal WHERE user_id == ?;", session["user_id"])
         modify_rows(
             """DELETE FROM personal WHERE user_id = %s""", (session["user_id"],)
         )
 
-        # rows = db.execute(
-        #     "SELECT * FROM personal WHERE user_id == ?;", session["user_id"]
-        # )
-        rows = fetch_rows(
-            """SELECT * FROM personal WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
-
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM personal WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
         return render_template("personal.html", rows=rows)
 
     # if submitted from the work page (same as above)
     elif request.form["clear_list"] == "work":
-        # db.execute("DELETE FROM work WHERE user_id == ?;", session["user_id"])
         modify_rows("""DELETE FROM work WHERE user_id = %s""", (session["user_id"],))
 
-        # rows = db.execute("SELECT * FROM work WHERE user_id == ?;", session["user_id"])
-        rows = fetch_rows(
-            """SELECT * FROM work WHERE user_id = %s""", (session["user_id"],)
+        tasks = reformat_rows(
+            fetch_rows(
+                """SELECT task FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
         )
+        deadlines = reformat_rows(
+            fetch_rows(
+                """SELECT deadline FROM work WHERE user_id = %s""",
+                (session["user_id"],),
+            )
+        )
+        rows = []
+        for i, x in enumerate(tasks):
+            rows.append({"task": tasks[i], "deadline": deadlines[i]})
         return render_template("work.html", rows=rows)
 
 
