@@ -5,7 +5,8 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_mail import Mail, Message
 import requests
-from config import config, SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
+from config import config
+from keys import SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
 from re import fullmatch
 
@@ -126,7 +127,7 @@ def login():
 
         # fetch user parameters
         row = fetch_row("""SELECT * FROM users WHERE username = %s""", (username,))
-
+        print(row)
         # check if username is unique i.e. length ofa rows == 1
         # and if that password provided doesnt match the hash that is returned from the db
         if len(row) != 3 or not check_password_hash(row[2], password):
@@ -143,6 +144,7 @@ def login():
 # define the app.route when registering
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    conn = None
     # if input supplied by user via post
     if request.method == "POST":
         username = request.form.get("username")
@@ -179,9 +181,9 @@ def register():
                         return render_template("register.html")
         except (Exception, DatabaseError) as error:
             print(error)
-        finally:
-            if conn:
-                conn.close()
+        # finally:
+        #     if conn:
+        #         conn.close()
 
         # check if password matches confirmation
         if password != confirmation:
@@ -751,3 +753,7 @@ def logout():
 
     # Redirect user to login form
     return redirect("/")
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")
