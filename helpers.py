@@ -24,8 +24,14 @@ def login_required(f):
 
 def fetch_row(query: str, arguments=None) -> list:
     try:
-        params = config()
-        conn = connect(**params)
+        # params = config()
+        conn = connect(
+            database="to-do",
+            user="postgres",
+            host="localhost",
+            password="postgres",
+            port=5432,
+        )
         with conn:
             with conn.cursor() as cur:
                 cur.execute(query, arguments)
@@ -40,8 +46,14 @@ def fetch_row(query: str, arguments=None) -> list:
 
 def fetch_rows(query: str, arguments=None) -> list:
     try:
-        params = config()
-        conn = connect(**params)
+        # params = config()
+        conn = connect(
+            database="to-do",
+            user="postgres",
+            host="localhost",
+            password="postgres",
+            port=5432,
+        )
         with conn:
             with conn.cursor() as cur:
                 cur.execute(query, arguments)
@@ -56,8 +68,14 @@ def fetch_rows(query: str, arguments=None) -> list:
 
 def modify_rows(query: str, arguments=None) -> None:
     try:
-        params = config()
-        conn = connect(**params)
+        # params = config()
+        conn = connect(
+            database="to-do",
+            user="postgres",
+            host="localhost",
+            password="postgres",
+            port=5432,
+        )
         with conn:
             with conn.cursor() as cur:
                 cur.execute(query, arguments)
