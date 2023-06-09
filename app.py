@@ -13,8 +13,6 @@ from re import fullmatch
 # import functions from helpers.py
 from helpers import *
 
-# db = SQL("sqlite:///todo.db")
-
 # define the database parameters globally
 PARAMS = config()
 
@@ -181,9 +179,6 @@ def register():
                         return render_template("register.html")
         except (Exception, DatabaseError) as error:
             print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
 
         # check if password matches confirmation
         if password != confirmation:

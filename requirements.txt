@@ -3,4 +3,4 @@ Flask_Mail==0.9.1
 psycopg2==2.9.6
 Requests==2.31.0
 Werkzeug==2.3.4
-flask_session
+flask_session==0.5.0

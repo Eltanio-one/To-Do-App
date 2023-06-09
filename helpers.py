@@ -33,9 +33,6 @@ def fetch_row(query: str, arguments=None) -> list:
                 return rows
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
 def fetch_rows(query: str, arguments=None) -> list:
@@ -49,9 +46,6 @@ def fetch_rows(query: str, arguments=None) -> list:
                 return rows
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
 def modify_rows(query: str, arguments=None) -> None:
@@ -64,9 +58,6 @@ def modify_rows(query: str, arguments=None) -> None:
                 conn.commit()
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
 def reformat_rows(rows: tuple) -> list:
