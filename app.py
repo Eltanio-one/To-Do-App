@@ -127,7 +127,6 @@ def login():
 
         # fetch user parameters
         row = fetch_row("""SELECT * FROM users WHERE username = %s""", (username,))
-        print(row)
         # check if username is unique i.e. length ofa rows == 1
         # and if that password provided doesnt match the hash that is returned from the db
         if len(row) != 3 or not check_password_hash(row[2], password):
@@ -168,7 +167,13 @@ def register():
 
         # query database for duplicate
         try:
-            conn = connect(**PARAMS)
+            conn = connect(
+                host="host.docker.internal",
+                user="postgres",
+                password="postgres",
+                dbname="to-do",
+                port=5432,
+            )
             with conn:
                 with conn.cursor() as cur:
                     cur.execute(

@@ -3,4 +3,4 @@ database.ini
 .env.dev
 keys.py
 docker-compose.yml
-.env.prod.db
+.env.dev

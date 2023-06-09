@@ -25,11 +25,12 @@ def login_required(f):
 def fetch_row(query: str, arguments=None) -> list:
     try:
         # params = config()
+        # "postgresql+psycopg2://postgres:postgres@db:5432/to-do"
         conn = connect(
-            database="to-do",
+            host="host.docker.internal",
             user="postgres",
-            host="localhost",
             password="postgres",
+            dbname="to-do",
             port=5432,
         )
         with conn:
@@ -48,10 +49,10 @@ def fetch_rows(query: str, arguments=None) -> list:
     try:
         # params = config()
         conn = connect(
-            database="to-do",
+            host="host.docker.internal",
             user="postgres",
-            host="localhost",
             password="postgres",
+            dbname="to-do",
             port=5432,
         )
         with conn:
@@ -70,10 +71,10 @@ def modify_rows(query: str, arguments=None) -> None:
     try:
         # params = config()
         conn = connect(
-            database="to-do",
+            host="host.docker.internal",
             user="postgres",
-            host="localhost",
             password="postgres",
+            dbname="to-do",
             port=5432,
         )
         with conn:
