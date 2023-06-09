@@ -13,8 +13,6 @@ from re import fullmatch
 # import functions from helpers.py
 from helpers import *
 
-# db = SQL("sqlite:///todo.db")
-
 # define the database parameters globally
 PARAMS = config()
 
@@ -180,15 +178,13 @@ def register():
                         """SELECT username FROM users WHERE username = %s""",
                         (username,),
                     )
-                    dup = cur.fetchone()[0]
-                    if dup == username:
-                        flash("Please choose a unique username")
-                        return render_template("register.html")
+                    dup = cur.fetchone()
+                    if dup:
+                        if dup[0] == username:
+                            flash("Please choose a unique username")
+                            return render_template("register.html")
         except (Exception, DatabaseError) as error:
             print(error)
-        # finally:
-        #     if conn:
-        #         conn.close()
 
         # check if password matches confirmation
         if password != confirmation:
@@ -255,18 +251,21 @@ def today():
 def projects():
     # if accessing via get
     if request.method == "GET":
+        # collect tasks from db
         tasks = reformat_rows(
             fetch_rows(
                 """SELECT task FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # collect deadlines from db
         deadlines = reformat_rows(
             fetch_rows(
                 """SELECT deadline FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # create rows to send to frontend
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -292,25 +291,30 @@ def projects():
                 deadline,
             )
         ):
+            # collect tasks from db
             tasks = reformat_rows(
                 fetch_rows(
                     """SELECT task FROM projects WHERE user_id = %s""",
                     (session["user_id"],),
                 )
             )
+            # collect deadlines from db
             deadlines = reformat_rows(
                 fetch_rows(
                     """SELECT deadline FROM projects WHERE user_id = %s""",
                     (session["user_id"],),
                 )
             )
+            # create rows to send to frontend
             rows = []
             for i, x in enumerate(tasks):
                 rows.append({"task": tasks[i], "deadline": deadlines[i]})
 
-            flash("Please insert a valid date ")
+            # flash alert
+            flash("Please insert a valid date")
             return render_template("projects.html", rows=rows)
 
+        # insert new row into db if deadline in valid format
         modify_rows(
             """INSERT INTO projects (user_id, task, deadline) VALUES (%s, %s, %s)""",
             (
@@ -319,19 +323,21 @@ def projects():
                 deadline,
             ),
         )
-
+        # collect tasks from db
         tasks = reformat_rows(
             fetch_rows(
                 """SELECT task FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # collect deadlines from db
         deadlines = reformat_rows(
             fetch_rows(
                 """SELECT deadline FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # create rows to send to frontend
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -339,25 +345,27 @@ def projects():
         return render_template("projects.html", rows=rows)
 
 
-# app.route follows same logic as projects app.route
+# personal app.route follows same logic as projects app.route
 @app.route("/personal", methods=["GET", "POST"])
 @login_required
 def personal():
     # if accessing via get
     if request.method == "GET":
+        # collect tasks from db
         tasks = reformat_rows(
             fetch_rows(
                 """SELECT task FROM personal WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
-        # tasks = reformat_rows(tasks)
+        # collect deadlines from db
         deadlines = reformat_rows(
             fetch_rows(
                 """SELECT deadline FROM personal WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # create rows to send to frontend
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
@@ -429,7 +437,7 @@ def personal():
         return render_template("personal.html", rows=rows)
 
 
-# app.route follows same logic as projects app.route
+# work app.route follows same logic as projects app.route
 @app.route("/work", methods=["GET", "POST"])
 @login_required
 def work():
@@ -499,7 +507,6 @@ def work():
                 deadline,
             ),
         )
-
         tasks = reformat_rows(
             fetch_rows(
                 """SELECT task FROM work WHERE user_id = %s""",
@@ -519,12 +526,13 @@ def work():
         return render_template("work.html", rows=rows)
 
 
+# only used to GET the about page
 @app.route("/about", methods=["GET"])
 def about():
     return render_template("about.html")
 
 
-# define the app.route for the user submitting a message to my throwaway email
+# define the app.route for the user submitting a message to my pseudo email
 @app.route("/email", methods=["POST"])
 def email():
     # get variables
@@ -547,6 +555,7 @@ def email():
         flash("Please insert a valid email address")
         return render_template("about.html")
 
+    # insert message and sender into table
     modify_rows(
         """INSERT INTO mail (user_id, email, message) VALUES (%s, %s, %s)""",
         (session["user_id"], email, text),
@@ -570,23 +579,26 @@ def removerow():
         # get the task from the form
         task = request.form.get("task")
 
+        # delete rows
         modify_rows(
             """DELETE FROM projects WHERE user_id = %s AND task = %s""",
             (session["user_id"], task),
         )
-
+        # collect tasks from db
         tasks = reformat_rows(
             fetch_rows(
                 """SELECT task FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # collect deadlines from db
         deadlines = reformat_rows(
             fetch_rows(
                 """SELECT deadline FROM projects WHERE user_id = %s""",
                 (session["user_id"],),
             )
         )
+        # create rows to pass to frontend
         rows = []
         for i, x in enumerate(tasks):
             rows.append({"task": tasks[i], "deadline": deadlines[i]})
