@@ -1,11 +1,10 @@
 from functools import wraps
 from flask import redirect, Flask, session
-from config import config
 from psycopg2 import connect, DatabaseError
 
 
 # define login_required to ensure that pages can't be accessed without login
-def login_required(f):
+def login_required(f: function) -> function:
     # here wraps(f) ensures that the name of the function that is passed in is not lost
     # if wraps(f) wasn't used, the docstring of the passed function would have been lost
     @wraps(f)
@@ -22,10 +21,8 @@ def login_required(f):
     return wrap
 
 
-def fetch_row(query: str, arguments=None) -> list:
+def fetch_row(query: str, arguments: tuple = None) -> list:
     try:
-        # params = config()
-        # "postgresql+psycopg2://postgres:postgres@db:5432/to-do"
         conn = connect(
             host="host.docker.internal",
             user="postgres",
@@ -40,14 +37,10 @@ def fetch_row(query: str, arguments=None) -> list:
                 return rows
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
-def fetch_rows(query: str, arguments=None) -> list:
+def fetch_rows(query: str, arguments: tuple = None) -> list:
     try:
-        # params = config()
         conn = connect(
             host="host.docker.internal",
             user="postgres",
@@ -62,14 +55,10 @@ def fetch_rows(query: str, arguments=None) -> list:
                 return rows
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
-def modify_rows(query: str, arguments=None) -> None:
+def modify_rows(query: str, arguments: tuple = None) -> None:
     try:
-        # params = config()
         conn = connect(
             host="host.docker.internal",
             user="postgres",
@@ -83,9 +72,6 @@ def modify_rows(query: str, arguments=None) -> None:
                 conn.commit()
     except (Exception, DatabaseError) as error:
         print(error)
-    # finally:
-    #     if conn:
-    #         conn.close()
 
 
 def reformat_rows(rows: tuple) -> list:

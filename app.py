@@ -5,16 +5,11 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_mail import Mail, Message
 import requests
-from config import config
 from keys import SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
 from re import fullmatch
-
-# import functions from helpers.py
 from helpers import *
 
-# define the database parameters globally
-PARAMS = config()
 
 # configure application
 app = Flask(__name__)
@@ -45,7 +40,8 @@ SECRET_KEY = SECRET_KEY
 VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
 
 
-# ensure that nothing is cached so that after logging out, pages can't be accessed
+# ensure that nothing is cached so that after each request is made
+# note, test the class of response to enable python3 type hints
 @app.after_request
 def after_request(response):
     """Ensure responses aren't cached"""
@@ -62,7 +58,7 @@ def after_request(response):
 # define the app.route for the homepage
 @app.route("/")
 @login_required
-def index():
+def index() -> function:
     # retrieve username from the users table post-registration
     username = "".join(
         fetch_row("""SELECT username FROM users WHERE id = %s""", (session["user_id"],))
@@ -85,7 +81,7 @@ def index():
 
 # define the app.route for logging in
 @app.route("/login", methods=["GET", "POST"])
-def login():
+def login() -> function:
     # clear the current session and forget any user_id if present
     session.clear()
     # check request method
@@ -140,7 +136,7 @@ def login():
 
 # define the app.route when registering
 @app.route("/register", methods=["GET", "POST"])
-def register():
+def register() -> function:
     conn = None
     # if input supplied by user via post
     if request.method == "POST":
@@ -210,7 +206,7 @@ def register():
 # define the app.route for the today notes page
 @app.route("/today", methods=["GET", "POST"])
 @login_required
-def today():
+def today() -> function:
     # if accessing the page via get
     if request.method == "GET":
         rows = reformat_rows(
@@ -248,7 +244,7 @@ def today():
 # define the app.route for the projects notes page
 @app.route("/projects", methods=["GET", "POST"])
 @login_required
-def projects():
+def projects() -> function:
     # if accessing via get
     if request.method == "GET":
         # collect tasks from db
@@ -348,7 +344,7 @@ def projects():
 # personal app.route follows same logic as projects app.route
 @app.route("/personal", methods=["GET", "POST"])
 @login_required
-def personal():
+def personal() -> function:
     # if accessing via get
     if request.method == "GET":
         # collect tasks from db
@@ -440,7 +436,7 @@ def personal():
 # work app.route follows same logic as projects app.route
 @app.route("/work", methods=["GET", "POST"])
 @login_required
-def work():
+def work() -> function:
     # if accessing via get
     if request.method == "GET":
         tasks = reformat_rows(
@@ -528,13 +524,13 @@ def work():
 
 # only used to GET the about page
 @app.route("/about", methods=["GET"])
-def about():
+def about() -> function:
     return render_template("about.html")
 
 
 # define the app.route for the user submitting a message to my pseudo email
 @app.route("/email", methods=["POST"])
-def email():
+def email() -> function:
     # get variables
     email = request.form.get("email")
     text = request.form.get("message")
@@ -573,7 +569,7 @@ def email():
 # define the app.route for removing a row from a to-do list
 @app.route("/removerow", methods=["POST"])
 @login_required
-def removerow():
+def removerow() -> function:
     # if submitted from the projects page
     if request.form["type"] == "projects":
         # get the task from the form
@@ -680,7 +676,7 @@ def removerow():
 # define the app.route to clear a to-do list
 @app.route("/clearlist", methods=["POST"])
 @login_required
-def clearlist():
+def clearlist() -> function:
     # if submitted from the projects page
     if request.form["clear_list"] == "projects":
         # delete all rows from relevant db
@@ -764,7 +760,7 @@ def clearlist():
 
 # define the app.route for logging out
 @app.route("/logout")
-def logout():
+def logout() -> function:
     # Forget any user_id
     session.clear()
 
