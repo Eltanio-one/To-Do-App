@@ -1,6 +1,11 @@
 from functools import wraps
 from flask import redirect, Flask, session
 from psycopg2 import connect, DatabaseError
+import sys
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 
 # define login_required to ensure that pages can't be accessed without login

@@ -8,8 +8,13 @@ import requests
 from keys import SITE_KEY, SECRET_KEY, MAIL_USERNAME, MAIL_PASSWORD
 from psycopg2 import connect, DatabaseError
 from re import fullmatch
-from helpers import *
+import sys
+import os
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+from src.helpers import *
 
 # configure application
 app = Flask(__name__)
